@@ -160,6 +160,7 @@ func (g gcsClient) DownloadFromCdn(ctx context.Context, options *DownloadOptions
 		return []byte{}, err
 	}
 
+	g.logger.Printf("Downloading data from Google Cloud Storage CDN...")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourcePath, http.NoBody)
 	if err != nil {
 		return nil, err
@@ -182,4 +183,21 @@ func (g gcsClient) DownloadFromCdn(ctx context.Context, options *DownloadOptions
 	}
 
 	return
+}
+
+func (g gcsClient) IsNotFoundErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	return errors.Is(err, storage.ErrObjectNotExist)
+}
+
+func (g gcsClient) Delete(ctx context.Context, options *DeleteOptions) error {
+	if options == nil {
+		return errors.New("missing delete options")
+	}
+	key := options.Folder + DirDelim + options.Key
+	g.logger.Printf("Deleting key: %+v from GCS Bucket...", key)
+
+	return g.bucket.Object(key).Delete(ctx)
 }

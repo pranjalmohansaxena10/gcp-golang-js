@@ -25,6 +25,13 @@ type ListOptions struct {
 	Recursive bool
 }
 
+// DeleteOptions
+type DeleteOptions struct {
+	Folder   string
+	Key      string
+	FileType string
+}
+
 type Storage interface {
 	// Download downloads the file from the storage
 	Download(ctx context.Context, options *DownloadOptions) ([]byte, error)
@@ -38,10 +45,10 @@ type Storage interface {
 	GetTempTokenForDownload(options *DownloadOptions) (string, error)
 	// DownloadFromCdn download objects via CDN
 	DownloadFromCdn(ctx context.Context, options *DownloadOptions) (output []byte, err error)
-	// // Delete deletes the object for given options
-	// Delete(ctx context.Context, options *DeleteOptions) error
-	// // IsNotFoundErr returns true if blob/object is not found
-	// IsNotFoundErr(err error) bool
+	// Delete deletes the object for given options
+	Delete(ctx context.Context, options *DeleteOptions) error
+	// IsNotFoundErr returns true if blob/object is not found
+	IsNotFoundErr(err error) bool
 }
 
 // NewStorageClient returns new storage client

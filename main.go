@@ -74,4 +74,24 @@ func main() {
 		return
 	}
 	logger.Printf("TempToken: %+v", tempToken)
+
+	cdnData, err := client.DownloadFromCdn(ctx, &storage.DownloadOptions{
+		Folder: folder,
+		Key:    key,
+	})
+	if err != nil {
+		logger.Printf("Couldn't download data from CDN: %+v", err)
+		return
+	}
+	logger.Printf("Data from CDN: %+v", string(cdnData))
+
+	err = client.Delete(ctx, &storage.DeleteOptions{
+		Folder:   folder + "/secondDir",
+		Key:      key,
+	})
+	if err != nil {
+		logger.Printf("Couldn't delete data from GCS Bucket since: %+v", err)
+		return
+	}
+	logger.Print("Deleted data successfully")
 }
