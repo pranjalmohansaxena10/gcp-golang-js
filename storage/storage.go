@@ -18,13 +18,20 @@ type UploadOptions struct {
 	FileType string
 }
 
+type ListOptions struct {
+	Folder    string // Bucket or Container Name
+	Key       string
+	Prefix    string
+	Recursive bool
+}
+
 type Storage interface {
 	// Download downloads the file from the storage
 	Download(ctx context.Context, options *DownloadOptions) ([]byte, error)
 	// Upload the contents of the reader as an object into the bucket.
 	Upload(ctx context.Context, options *UploadOptions, r io.Reader) error
-	// // Exists checks if the given object exists.
-	// Exists(ctx context.Context, opts *ListOptions) (bool, error)
+	// Exists checks if the given object exists.
+	Exists(ctx context.Context, opts *ListOptions) (bool, error)
 	// // ListKeys list all the keys for given options
 	// ListKeys(ctx context.Context, options *ListOptions) ([]string, error)
 	// // GetTempTokenForDownload returns the signed token to download files.
@@ -38,20 +45,20 @@ type Storage interface {
 }
 
 // NewStorageClient returns new storage client
-func NewStorageClient(ctx context.Context, cloudProvider string, bucketName string) (Storage, error) {
+func NewStorageClient(ctx context.Context, cloudProvider string, bucketName string, logger log.Logger) (Storage, error) {
 
 	switch strings.ToLower(cloudProvider) {
 	case "gcs":
 		return newGCSClient(ctx, GCSBucketParams{
 			Bucket:         bucketName,
 			ServiceAccount: "",
-			Logger:         *log.Default(),
+			Logger:         logger,
 		})
 	default:
 		return newGCSClient(ctx, GCSBucketParams{
 			Bucket:         bucketName,
 			ServiceAccount: "",
-			Logger:         *log.Default(),
+			Logger:         logger,
 		})
 	}
 }

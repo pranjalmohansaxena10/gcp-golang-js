@@ -71,3 +71,18 @@ func (g gcsClient) Upload(ctx context.Context, options *UploadOptions, r io.Read
 	}
 	return gcsWriter.Close()
 }
+
+// Exists check whether given object is present in GCS bucket or not
+func (g gcsClient) Exists(ctx context.Context, options *ListOptions) (bool, error) {
+	if options == nil {
+		return false, errors.New("missing list options")
+	}
+	key := options.Folder + "/" + options.Key
+	g.logger.Printf("Checking whether file: %+v exists in GCS Bucket...", key)
+	if _, err := g.bucket.Object(key).Attrs(ctx); err == nil {
+		return true, nil
+	} else if err != storage.ErrObjectNotExist {
+		return false, err
+	}
+	return false, nil
+}
