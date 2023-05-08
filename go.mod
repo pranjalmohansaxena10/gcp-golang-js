@@ -2,8 +2,6 @@ module pranjalmohansaxena10/gcp-golang-js
 
 go 1.20
 
-require github.com/go-kit/log v0.2.1
-
 require (
 	cloud.google.com/go v0.110.0 // indirect
 	cloud.google.com/go/compute v1.18.0 // indirect
@@ -28,7 +26,4 @@ require (
 	google.golang.org/protobuf v1.29.1 // indirect
 )
 
-require (
-	cloud.google.com/go/storage v1.30.1
-	github.com/go-logfmt/logfmt v0.5.1 // indirect
-)
+require cloud.google.com/go/storage v1.30.1

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"io"
 	"log"
 	"strings"
 )
@@ -12,13 +13,16 @@ type DownloadOptions struct {
 }
 
 type UploadOptions struct {
+	Folder   string // Bucket or Container Name
+	Key      string
+	FileType string
 }
 
 type Storage interface {
 	// Download downloads the file from the storage
 	Download(ctx context.Context, options *DownloadOptions) ([]byte, error)
 	// Upload the contents of the reader as an object into the bucket.
-	// Upload(ctx context.Context, options *UploadOptions, r io.Reader) error
+	Upload(ctx context.Context, options *UploadOptions, r io.Reader) error
 	// // Exists checks if the given object exists.
 	// Exists(ctx context.Context, opts *ListOptions) (bool, error)
 	// // ListKeys list all the keys for given options
