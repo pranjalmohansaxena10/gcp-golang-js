@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/iterator"
@@ -24,6 +26,7 @@ type GCSBucketParams struct {
 }
 
 const DirDelim = "/"
+const preSignURLExpiryDuration = 4 * time.Hour
 
 func newGCSClient(ctx context.Context, params GCSBucketParams) (Storage, error) {
 	if params.Bucket == "" {
@@ -91,14 +94,16 @@ func (g gcsClient) Exists(ctx context.Context, options *ListOptions) (bool, erro
 }
 
 func (g gcsClient) ListKeys(ctx context.Context, options *ListOptions) (keys []string, err error) {
-	// Ensure the object name actually ends with a dir suffix. Otherwise we'll just iterate the
-	// object itself as one prefix item.
-	dir := options.Folder + DirDelim + options.Prefix
-	if dir != "" {
-		dir = strings.TrimSuffix(dir, DirDelim) + DirDelim
+	if options == nil {
+		return keys, errors.New("missing list options")
 	}
 
-	g.logger.Printf("Iterating for prefix: %+v in GCS Bucket...", dir)
+	prefix := options.Folder + DirDelim + options.Prefix
+	if prefix != "" {
+		prefix = strings.TrimSuffix(prefix, DirDelim) + DirDelim
+	}
+
+	g.logger.Printf("Iterating for prefix: %+v in GCS Bucket...", prefix)
 	// If recursive iteration is enabled we should pass an empty delimiter.
 	delimiter := DirDelim
 	if options.Recursive {
@@ -106,7 +111,7 @@ func (g gcsClient) ListKeys(ctx context.Context, options *ListOptions) (keys []s
 	}
 
 	it := g.bucket.Objects(ctx, &storage.Query{
-		Prefix:    dir,
+		Prefix:    prefix,
 		Delimiter: delimiter,
 	})
 	for {
@@ -124,4 +129,57 @@ func (g gcsClient) ListKeys(ctx context.Context, options *ListOptions) (keys []s
 		}
 		keys = append(keys, attrs.Prefix+attrs.Name)
 	}
+}
+
+func (g gcsClient) GetTempTokenForDownload(options *DownloadOptions) (tempToken string, err error) {
+	if options == nil {
+		return tempToken, errors.New("missing download options")
+	}
+	key := options.Folder + DirDelim + options.Key
+	if strings.HasPrefix(options.Key, options.Folder) {
+		key = options.Key
+	}
+
+	g.logger.Printf("Getting temp token for file: %+v from GCS Bucket...", key)
+
+	tempToken, err = g.bucket.SignedURL(key, &storage.SignedURLOptions{
+		Method:  http.MethodGet,
+		Expires: time.Now().Add(preSignURLExpiryDuration),
+		Scheme:  storage.SigningSchemeV4,
+	})
+	if err != nil {
+		return "", fmt.Errorf("error getting temp token for file: %+v from GCS since: %+v", key, err)
+	}
+
+	return tempToken, err
+}
+
+func (g gcsClient) DownloadFromCdn(ctx context.Context, options *DownloadOptions) (output []byte, err error) {
+	sourcePath, err := g.GetTempTokenForDownload(options)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourcePath, http.NoBody)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+	output, err = io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return output, fmt.Errorf("non-20x status code %d", res.StatusCode)
+	}
+
+	return
 }

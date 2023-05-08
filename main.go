@@ -13,6 +13,7 @@ func main() {
 	client, err := storage.NewStorageClient(ctx, "gcs", "dev-poc", logger)
 	if err != nil {
 		logger.Printf("Couldn't create storage client: %+v", err)
+		return
 	}
 
 	folder := "firstDir"
@@ -26,19 +27,21 @@ func main() {
 	}, bytes.NewReader([]byte("test data to validate upload")))
 	if err != nil {
 		logger.Printf("Couldn't upload file to cloud storage: %+v", err)
+		return
 	}
 	logger.Printf("Uploading data is successful")
 
 	exists, err := client.Exists(ctx, &storage.ListOptions{
-		Folder:    folder,
-		Key:       key,
-		Prefix:    "",
+		Folder: folder,
+		Key:    key,
+		Prefix: "",
 	})
 
 	if err != nil {
-		logger.Printf("Couldn't check whether given file exists in cloud storage: %+v", err)	
+		logger.Printf("Couldn't check whether given file exists in cloud storage: %+v", err)
+		return
 	}
-	logger.Printf("Given file: %+v exists in cloud storage: %+v", folder + key, exists)	
+	logger.Printf("Given file: %+v exists in cloud storage: %+v", folder+key, exists)
 
 	data, err := client.Download(ctx, &storage.DownloadOptions{
 		Folder: folder,
@@ -46,6 +49,7 @@ func main() {
 	})
 	if err != nil {
 		logger.Printf("Couldn't download file from cloud storage: %+v", err)
+		return
 	}
 	logger.Printf("Downloading data is successful")
 	logger.Printf("Data: %+v", string(data))
@@ -56,8 +60,18 @@ func main() {
 		Recursive: true,
 	})
 	if err != nil {
-		logger.Printf("Couldn't get keys for cloud storage: %+v", err)	
+		logger.Printf("Couldn't get keys for cloud storage: %+v", err)
+		return
 	}
 	logger.Printf("Keys: %+v", keys)
-	
+
+	tempToken, err := client.GetTempTokenForDownload(&storage.DownloadOptions{
+		Folder: folder,
+		Key:    key,
+	})
+	if err != nil {
+		logger.Printf("Couldn't get tempToken from cloud storage: %+v", err)
+		return
+	}
+	logger.Printf("TempToken: %+v", tempToken)
 }

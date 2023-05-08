@@ -34,10 +34,10 @@ type Storage interface {
 	Exists(ctx context.Context, opts *ListOptions) (bool, error)
 	// ListKeys list all the keys for given options
 	ListKeys(ctx context.Context, options *ListOptions) ([]string, error)
-	// // GetTempTokenForDownload returns the signed token to download files.
-	// GetTempTokenForDownload(options *DownloadOptions) (string, error)
-	// // DownloadFromCdn download objects via CDN
-	// DownloadFromCdn(ctx context.Context, options *DownloadOptions) (output []byte, err error)
+	// GetTempTokenForDownload returns the signed token to download files.
+	GetTempTokenForDownload(options *DownloadOptions) (string, error)
+	// DownloadFromCdn download objects via CDN
+	DownloadFromCdn(ctx context.Context, options *DownloadOptions) (output []byte, err error)
 	// // Delete deletes the object for given options
 	// Delete(ctx context.Context, options *DeleteOptions) error
 	// // IsNotFoundErr returns true if blob/object is not found
