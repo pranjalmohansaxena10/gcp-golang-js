@@ -32,8 +32,8 @@ type Storage interface {
 	Upload(ctx context.Context, options *UploadOptions, r io.Reader) error
 	// Exists checks if the given object exists.
 	Exists(ctx context.Context, opts *ListOptions) (bool, error)
-	// // ListKeys list all the keys for given options
-	// ListKeys(ctx context.Context, options *ListOptions) ([]string, error)
+	// ListKeys list all the keys for given options
+	ListKeys(ctx context.Context, options *ListOptions) ([]string, error)
 	// // GetTempTokenForDownload returns the signed token to download files.
 	// GetTempTokenForDownload(options *DownloadOptions) (string, error)
 	// // DownloadFromCdn download objects via CDN

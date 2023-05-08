@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/iterator"
 )
 
 type gcsClient struct {
@@ -21,6 +22,8 @@ type GCSBucketParams struct {
 	ServiceAccount string
 	Logger         log.Logger
 }
+
+const DirDelim = "/"
 
 func newGCSClient(ctx context.Context, params GCSBucketParams) (Storage, error) {
 	if params.Bucket == "" {
@@ -41,7 +44,7 @@ func (g gcsClient) Download(ctx context.Context, options *DownloadOptions) ([]by
 	if options == nil {
 		return nil, errors.New("missing download options")
 	}
-	key := options.Folder + "/" + options.Key
+	key := options.Folder + DirDelim + options.Key
 	if strings.HasPrefix(options.Key, options.Folder) {
 		key = options.Key
 	}
@@ -62,7 +65,7 @@ func (g gcsClient) Upload(ctx context.Context, options *UploadOptions, r io.Read
 	if options == nil {
 		return errors.New("missing upload options")
 	}
-	key := options.Folder + "/" + options.Key
+	key := options.Folder + DirDelim + options.Key
 	g.logger.Printf("Uploading file: %+v to GCS Bucket...", key)
 	gcsWriter := g.bucket.Object(key).NewWriter(ctx)
 
@@ -77,7 +80,7 @@ func (g gcsClient) Exists(ctx context.Context, options *ListOptions) (bool, erro
 	if options == nil {
 		return false, errors.New("missing list options")
 	}
-	key := options.Folder + "/" + options.Key
+	key := options.Folder + DirDelim + options.Key
 	g.logger.Printf("Checking whether file: %+v exists in GCS Bucket...", key)
 	if _, err := g.bucket.Object(key).Attrs(ctx); err == nil {
 		return true, nil
@@ -85,4 +88,40 @@ func (g gcsClient) Exists(ctx context.Context, options *ListOptions) (bool, erro
 		return false, err
 	}
 	return false, nil
+}
+
+func (g gcsClient) ListKeys(ctx context.Context, options *ListOptions) (keys []string, err error) {
+	// Ensure the object name actually ends with a dir suffix. Otherwise we'll just iterate the
+	// object itself as one prefix item.
+	dir := options.Folder + DirDelim + options.Prefix
+	if dir != "" {
+		dir = strings.TrimSuffix(dir, DirDelim) + DirDelim
+	}
+
+	g.logger.Printf("Iterating for prefix: %+v in GCS Bucket...", dir)
+	// If recursive iteration is enabled we should pass an empty delimiter.
+	delimiter := DirDelim
+	if options.Recursive {
+		delimiter = ""
+	}
+
+	it := g.bucket.Objects(ctx, &storage.Query{
+		Prefix:    dir,
+		Delimiter: delimiter,
+	})
+	for {
+		select {
+		case <-ctx.Done():
+			return keys, ctx.Err()
+		default:
+		}
+		attrs, err := it.Next()
+		if err == iterator.Done {
+			return keys, nil
+		}
+		if err != nil {
+			return keys, err
+		}
+		keys = append(keys, attrs.Prefix+attrs.Name)
+	}
 }

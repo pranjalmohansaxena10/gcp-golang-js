@@ -15,8 +15,9 @@ func main() {
 		logger.Printf("Couldn't create storage client: %+v", err)
 	}
 
-	folder := "firstDir/secondDir"
-	key := "testData1.txt"
+	folder := "firstDir"
+	key := "testData4.txt"
+	prefix := "secondDir"
 
 	err = client.Upload(ctx, &storage.UploadOptions{
 		Folder:   folder,
@@ -32,15 +33,12 @@ func main() {
 		Folder:    folder,
 		Key:       key,
 		Prefix:    "",
-		Recursive: false,
 	})
 
 	if err != nil {
 		logger.Printf("Couldn't check whether given file exists in cloud storage: %+v", err)	
 	}
-	if exists {
-		logger.Printf("Given file: %+v exists in cloud storage: %+v", folder + key, exists)	
-	}
+	logger.Printf("Given file: %+v exists in cloud storage: %+v", folder + key, exists)	
 
 	data, err := client.Download(ctx, &storage.DownloadOptions{
 		Folder: folder,
@@ -51,4 +49,15 @@ func main() {
 	}
 	logger.Printf("Downloading data is successful")
 	logger.Printf("Data: %+v", string(data))
+
+	keys, err := client.ListKeys(ctx, &storage.ListOptions{
+		Folder:    folder,
+		Prefix:    prefix,
+		Recursive: true,
+	})
+	if err != nil {
+		logger.Printf("Couldn't get keys for cloud storage: %+v", err)	
+	}
+	logger.Printf("Keys: %+v", keys)
+	
 }
