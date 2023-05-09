@@ -52,7 +52,7 @@ type Storage interface {
 }
 
 // NewStorageClient returns new storage client
-func NewStorageClient(ctx context.Context, cloudProvider string, bucketName string, logger log.Logger) (Storage, error) {
+func NewStorageClient(ctx context.Context, cloudProvider, bucketName string, logger log.Logger) (Storage, error) {
 
 	switch strings.ToLower(cloudProvider) {
 	case "gcs":
