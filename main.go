@@ -11,11 +11,11 @@ import (
 func main() {
 
 	ctx := context.Background()
-	// folder := "firstDir"
-	// key := "testData4.txt"
-	// prefix := "secondDir"
-	// bucket := "dev-poc"
-	// GCSBucketInteractions(ctx, bucket, folder, key, prefix)
+	folder := "firstDir"
+	key := "testData4.txt"
+	prefix := "secondDir"
+	bucket := "dev-poc"
+	GCSBucketInteractions(ctx, bucket, folder, key, prefix)
 
 	projectID := "hyperexecute-dev"
 	GSMInterations(ctx, projectID)
