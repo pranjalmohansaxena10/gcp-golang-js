@@ -3,9 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
+	"pranjalmohansaxena10/gcp-golang-js/queue"
 	"pranjalmohansaxena10/gcp-golang-js/secrets"
 	"pranjalmohansaxena10/gcp-golang-js/storage"
+	"time"
 )
 
 func main() {
@@ -19,6 +22,11 @@ func main() {
 
 	projectID := "hyperexecute-dev"
 	GSMInterations(ctx, projectID)
+
+	subscriptionID := "validate-pubsub-interactions"
+	topic := "dev-poc-pubsub"
+	batchSize := 5
+	PubsubInteractions(ctx, projectID, subscriptionID, topic, batchSize)
 }
 
 func GCSBucketInteractions(ctx context.Context, bucket, folder, key, prefix string) {
@@ -167,5 +175,43 @@ func GSMInterations(ctx context.Context, projectID string) {
 	if err != nil {
 		logger.Printf("couldn't delete secret data since: %+v", err)
 		return
+	}
+}
+
+func PubsubInteractions(ctx context.Context, projectID, subscriptionID, topic string, batchSize int) {
+	logger := *log.Default()
+	//----------Queue Client Creation--------------
+	client, err := queue.NewQueueInstance("GCP", projectID, subscriptionID, topic, logger, ctx)
+	if err != nil {
+		logger.Printf("couldn't create queue instance: %+v", err)
+		return
+	}
+
+	//----------Sending data--------------
+	for i := 1; i <= batchSize; i++ {
+		err = client.Send([]byte(fmt.Sprintf("%+v ", i) + time.Now().String()))
+		if err != nil {
+			logger.Printf("couldn't send message to queue: %+v", err)
+			return
+		}
+	}
+
+	//----------Receiving data--------------
+	receivedMessage, err := client.Receive()
+	if err != nil {
+		logger.Printf("couldn't receive message from queue: %+v", err)
+		return
+	}
+	logger.Printf("Received message as: %+v", string(receivedMessage.Msg))
+
+	//----------Receiving data in batches--------------
+	receivedMessages, err := client.ReceiveMessagesInBatch(batchSize)
+	if err != nil {
+		logger.Printf("couldn't receive message from queue: %+v", err)
+		return
+	}
+	logger.Printf("Got data of batch as: %+v", len(receivedMessages))
+	for idx := 0; idx < len(receivedMessages); idx++ {
+		logger.Printf("Received message as: %+v", string(receivedMessages[idx].Msg))
 	}
 }
