@@ -5,28 +5,36 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"pranjalmohansaxena10/gcp-golang-js/infravms"
 	"pranjalmohansaxena10/gcp-golang-js/queue"
 	"pranjalmohansaxena10/gcp-golang-js/secrets"
 	"pranjalmohansaxena10/gcp-golang-js/storage"
+	"sync"
 	"time"
+
+	"google.golang.org/api/compute/v1"
 )
 
 func main() {
 
 	ctx := context.Background()
-	folder := "firstDir"
-	key := "testData4.txt"
-	prefix := "secondDir"
-	bucket := "dev-poc"
-	GCSBucketInteractions(ctx, bucket, folder, key, prefix)
+	// folder := "firstDir"
+	// key := "testData4.txt"
+	// prefix := "secondDir"
+	// bucket := "dev-poc"
+	// GCSBucketInteractions(ctx, bucket, folder, key, prefix)
 
 	projectID := "hyperexecute-dev"
-	GSMInterations(ctx, projectID)
+	// GSMInterations(ctx, projectID)
 
-	subscriptionID := "validate-pubsub-interactions"
-	topic := "dev-poc-pubsub"
-	batchSize := 5
-	PubsubInteractions(ctx, projectID, subscriptionID, topic, batchSize)
+	// subscriptionID := "validate-pubsub-interactions"
+	// topic := "dev-poc-pubsub"
+	// batchSize := 5
+	// PubsubInteractions(ctx, projectID, subscriptionID, topic, batchSize)
+
+	zone := "asia-south2-a"
+	instanceGroupName := "dev-poc-instance-group-1"
+	Autoscaler(ctx, projectID, zone, instanceGroupName)
 }
 
 func GCSBucketInteractions(ctx context.Context, bucket, folder, key, prefix string) {
@@ -213,5 +221,116 @@ func PubsubInteractions(ctx context.Context, projectID, subscriptionID, topic st
 	logger.Printf("Got data of batch as: %+v", len(receivedMessages))
 	for idx := 0; idx < len(receivedMessages); idx++ {
 		logger.Printf("Received message as: %+v", string(receivedMessages[idx].Msg))
+	}
+}
+
+func Autoscaler(ctx context.Context, projectID, zone, instanceGroupName string) {
+	logger := *log.Default()
+
+	//----------Queue Client Creation--------------
+	client, err := infravms.NewInfraClient(ctx, projectID, zone, logger)
+	if err != nil {
+		logger.Printf("couldn't receive infra instance: %+v", err)
+		return
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		fmt.Println("1")
+		err := client.ScaleUp(instanceGroupName, 3)
+		if err != nil {
+			logger.Printf("couldn't scale up 1: %+v", err)
+			return
+		}
+	}()
+	
+	// wg.Add(1)
+	// go func() {
+	// 	fmt.Println("2")
+	// 	defer wg.Done()
+	// 	err := client.ScaleDown(instanceGroupName, 5)
+	// 	if err != nil {
+	// 		logger.Printf("couldn't scale down 2: %+v", err)
+	// 		return
+	// 	}
+	// }()
+
+	wg.Wait()
+	// // Create a new Compute Engine API client.
+	// ctx := context.Background()
+	// computeService, err := compute.NewService(ctx)
+	// if err != nil {
+	// 	log.Fatalf("Failed to create compute service: %v", err)
+	// }
+
+	// // Get the autoscaler for the MIG.
+	// autoscaler, err := computeService.Autoscalers.Get(projectId, zone, migName).Do()
+	// if err != nil {
+	// 	log.Fatalf("Failed to get autoscaler: %v", err)
+	// }
+
+	// gcpInstanceGroup, err := computeService.InstanceGroups.
+	// 	Get(projectId, zone, migName).Do()
+	// if err != nil {
+	// 	log.Fatalf("Error getting managed instance group from GCP: %v", err)
+	// }
+
+	// log.Printf("AutoscalingPolicy %s: %+v", migName, autoscaler.AutoscalingPolicy)
+	// log.Printf("MinNumReplicas %s: %+v", migName, autoscaler.AutoscalingPolicy.MinNumReplicas)
+	// log.Printf("MaxNumReplicas %s: %+v", migName, autoscaler.AutoscalingPolicy.MaxNumReplicas)
+	// log.Printf("current size %s: %+v", migName, gcpInstanceGroup.Size)
+
+	// newSize := 6
+	// migService := compute.NewInstanceGroupManagersService(computeService)
+	// operation, err := migService.Resize(projectId, zone, migName, int64(newSize)).Context(ctx).Do()
+	// if err != nil {
+	// 	log.Fatalf("Failed to resize MIG: %v", err)
+	// }
+
+	// // Wait for the resize operation to complete.
+	// log.Printf("Waiting for resize operation %s to complete...", operation.Name)
+	// if err := waitForOperation(ctx, computeService, operation.Name, projectId, zone); err != nil {
+	// 	log.Fatalf("Resize operation failed: %v", err)
+	// }
+
+	// log.Printf("MIG resize to %d instances completed successfully.", newSize)
+
+	// gcpInstanceGroupUpdated, err := computeService.InstanceGroups.
+	// 	Get(projectId, zone, migName).Do()
+	// if err != nil {
+	// 	log.Fatalf("Error getting managed instance group from GCP: %v", err)
+	// }
+	// log.Printf("size after resizing %s: %+v", migName, gcpInstanceGroupUpdated.Size)
+
+}
+
+func waitForOperation(ctx context.Context, computeService *compute.Service, operationName, projectID, zone string) error {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("context timed out waiting for operation %s to complete", operationName)
+		case <-ticker.C:
+			operation, err := computeService.ZoneOperations.Get(projectID, zone, operationName).Context(ctx).Do()
+			if err != nil {
+				return fmt.Errorf("failed to get operation status for %s: %v", operationName, err)
+			}
+
+			switch operation.Status {
+			case "PENDING", "RUNNING":
+				log.Printf("Operation %s status: %s...", operation.Name, operation.Status)
+			case "DONE":
+				if operation.Error != nil {
+					return fmt.Errorf("operation %s failed: %v", operation.Name, operation.Error.Errors)
+				}
+				return nil
+			default:
+				return fmt.Errorf("operation %s has an invalid status: %s", operation.Name, operation.Status)
+			}
+		}
 	}
 }

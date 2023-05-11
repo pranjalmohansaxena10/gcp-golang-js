@@ -31,6 +31,6 @@ require (
 	cloud.google.com/go/pubsub v1.30.1
 	cloud.google.com/go/secretmanager v1.10.1
 	cloud.google.com/go/storage v1.30.1
-	google.golang.org/api v0.121.0
+	google.golang.org/api v0.122.0
 	google.golang.org/grpc v1.55.0
 )
