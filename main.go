@@ -18,19 +18,19 @@ import (
 func main() {
 
 	ctx := context.Background()
-	// folder := "firstDir"
-	// key := "testData4.txt"
-	// prefix := "secondDir"
-	// bucket := "dev-poc"
-	// GCSBucketInteractions(ctx, bucket, folder, key, prefix)
+	folder := "firstDir"
+	key := "testData4.txt"
+	prefix := "secondDir"
+	bucket := "dev-poc"
+	GCSBucketInteractions(ctx, bucket, folder, key, prefix)
 
 	projectID := "hyperexecute-dev"
-	// GSMInterations(ctx, projectID)
+	GSMInterations(ctx, projectID)
 
-	// subscriptionID := "validate-pubsub-interactions"
-	// topic := "dev-poc-pubsub"
-	// batchSize := 5
-	// PubsubInteractions(ctx, projectID, subscriptionID, topic, batchSize)
+	subscriptionID := "validate-pubsub-interactions"
+	topic := "dev-poc-pubsub"
+	batchSize := 5
+	PubsubInteractions(ctx, projectID, subscriptionID, topic, batchSize)
 
 	zone := "asia-south2-a"
 	instanceGroupName := "dev-poc-instance-group-1"
@@ -258,52 +258,6 @@ func Autoscaler(ctx context.Context, projectID, zone, instanceGroupName string) 
 	// }()
 
 	wg.Wait()
-	// // Create a new Compute Engine API client.
-	// ctx := context.Background()
-	// computeService, err := compute.NewService(ctx)
-	// if err != nil {
-	// 	log.Fatalf("Failed to create compute service: %v", err)
-	// }
-
-	// // Get the autoscaler for the MIG.
-	// autoscaler, err := computeService.Autoscalers.Get(projectId, zone, migName).Do()
-	// if err != nil {
-	// 	log.Fatalf("Failed to get autoscaler: %v", err)
-	// }
-
-	// gcpInstanceGroup, err := computeService.InstanceGroups.
-	// 	Get(projectId, zone, migName).Do()
-	// if err != nil {
-	// 	log.Fatalf("Error getting managed instance group from GCP: %v", err)
-	// }
-
-	// log.Printf("AutoscalingPolicy %s: %+v", migName, autoscaler.AutoscalingPolicy)
-	// log.Printf("MinNumReplicas %s: %+v", migName, autoscaler.AutoscalingPolicy.MinNumReplicas)
-	// log.Printf("MaxNumReplicas %s: %+v", migName, autoscaler.AutoscalingPolicy.MaxNumReplicas)
-	// log.Printf("current size %s: %+v", migName, gcpInstanceGroup.Size)
-
-	// newSize := 6
-	// migService := compute.NewInstanceGroupManagersService(computeService)
-	// operation, err := migService.Resize(projectId, zone, migName, int64(newSize)).Context(ctx).Do()
-	// if err != nil {
-	// 	log.Fatalf("Failed to resize MIG: %v", err)
-	// }
-
-	// // Wait for the resize operation to complete.
-	// log.Printf("Waiting for resize operation %s to complete...", operation.Name)
-	// if err := waitForOperation(ctx, computeService, operation.Name, projectId, zone); err != nil {
-	// 	log.Fatalf("Resize operation failed: %v", err)
-	// }
-
-	// log.Printf("MIG resize to %d instances completed successfully.", newSize)
-
-	// gcpInstanceGroupUpdated, err := computeService.InstanceGroups.
-	// 	Get(projectId, zone, migName).Do()
-	// if err != nil {
-	// 	log.Fatalf("Error getting managed instance group from GCP: %v", err)
-	// }
-	// log.Printf("size after resizing %s: %+v", migName, gcpInstanceGroupUpdated.Size)
-
 }
 
 func waitForOperation(ctx context.Context, computeService *compute.Service, operationName, projectID, zone string) error {
